@@ -58,13 +58,16 @@ class SQLInjectionFilter(SQLFilter):
             injection_deleted_text = injection_deleted_text.replace(sql_str, f'"{sql_str}"')
         return injection_deleted_text
 
-def get_mysql_password(path: str) -> str:
+def get_mysql_info(path: str) -> str:
     with open(path, "r") as file:
         data: dict[str, any] = json.load(file)
-        return data["password"]
+        return data["host"], data["user"], data["password"]
 
 if __name__ == "__main__":
-    mysql_password: str = get_mysql_password("src/sql_password.json")
+    mysql_info: tuple[str] = get_mysql_info("src/sql_info.json")
+    mysql_host: str = mysql_info[0]
+    mysql_user: str = mysql_info[1]
+    mysql_password: str = mysql_info[2]
     user_name: str = input("User Name: ")
     user_password: str = input("Password: ")
     # injection filter
@@ -72,7 +75,7 @@ if __name__ == "__main__":
     password_injection_filter: SQLFilter = SQLInjectionFilter(user_password)
     user_name = username_injection_filter.filter()
     user_password = password_injection_filter.filter()
-    mysql: SQL = MySQL("localhost", "root", mysql_password)
+    mysql: SQL = MySQL(mysql_host, mysql_user, mysql_password)
     mysql_command: str = f"SELECT name, password FROM users WHERE name = '{user_name}' AND password = '{user_password}'"
     print(f"MySQL Command: {mysql_command}")
     mysql.execute("mysql", mysql_command)
